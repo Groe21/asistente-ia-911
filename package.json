@@ -57,8 +57,10 @@
   },
   "scripts": {
     "start": "vite",
+    "dev": "vite",
     "build": "vite build --sourcemap",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "preview": "vite preview"
   },
   "eslintConfig": {
     "extends": [
