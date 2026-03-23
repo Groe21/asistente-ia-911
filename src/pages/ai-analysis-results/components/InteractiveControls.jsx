@@ -57,12 +57,7 @@ const InteractiveControls = ({ patientId, analysisData, onUpdateStatus, onAddNot
   };
 
   const handleNavigateToDetails = () => {
-    navigate('/patient-details', { 
-      state: { 
-        patientId: patientId,
-        fromAnalysis: true 
-      } 
-    });
+    navigate(`/patient-details/${patientId}`);
   };
 
   const handleNavigateToHistory = () => {
@@ -82,13 +77,13 @@ const InteractiveControls = ({ patientId, analysisData, onUpdateStatus, onAddNot
         </h2>
       </div>
       {/* Main Action Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="flex flex-col gap-3 mb-6">
         <Button
           variant="default"
           onClick={handleAcceptAnalysis}
           iconName="Check"
           iconPosition="left"
-          className="h-12"
+          className="h-11 w-full justify-center"
         >
           Aceptar Análisis IA
         </Button>
@@ -98,7 +93,7 @@ const InteractiveControls = ({ patientId, analysisData, onUpdateStatus, onAddNot
           onClick={handleModifyAnalysis}
           iconName="Edit"
           iconPosition="left"
-          className="h-12"
+          className="h-11 w-full justify-center"
         >
           Modificar Recomendaciones
         </Button>
@@ -145,36 +140,34 @@ const InteractiveControls = ({ patientId, analysisData, onUpdateStatus, onAddNot
         </div>
       )}
       {/* Secondary Actions */}
-      <div className="space-y-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setShowNoteForm(!showNoteForm)}
-            iconName="FileText"
-            iconPosition="left"
-            className="flex-1"
-          >
-            {showNoteForm ? 'Ocultar' : 'Agregar'} Nota del Entrenador
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={handleNavigateToDetails}
-            iconName="User"
-            iconPosition="left"
-            className="flex-1"
-          >
-            Ver Detalles del Paciente
-          </Button>
-        </div>
+      <div className="flex flex-col gap-3 mb-6">
+        <Button
+          variant="outline"
+          onClick={() => setShowNoteForm(!showNoteForm)}
+          iconName="FileText"
+          iconPosition="left"
+          className="h-10 w-full justify-center text-sm"
+        >
+          {showNoteForm ? 'Ocultar' : 'Agregar'} Nota del Entrenador
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={handleNavigateToDetails}
+          iconName="User"
+          iconPosition="left"
+          className="h-10 w-full justify-center text-sm"
+        >
+          Ver Detalles del Paciente
+        </Button>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="border-t border-border pt-3 flex flex-col gap-2">
           <Button
             variant="ghost"
             onClick={handleNavigateToHistory}
             iconName="Clock"
             iconPosition="left"
-            className="flex-1"
+            className="h-9 w-full justify-center text-sm"
           >
             Historial de Casos
           </Button>
@@ -184,7 +177,7 @@ const InteractiveControls = ({ patientId, analysisData, onUpdateStatus, onAddNot
             onClick={() => navigate('/patient-dashboard')}
             iconName="ArrowLeft"
             iconPosition="left"
-            className="flex-1"
+            className="h-9 w-full justify-center text-sm"
           >
             Volver al Panel
           </Button>
@@ -247,26 +240,26 @@ const InteractiveControls = ({ patientId, analysisData, onUpdateStatus, onAddNot
         </div>
       )}
       {/* Analysis Summary */}
-      <div className="pt-6 border-t border-border">
-        <h3 className="font-medium text-foreground mb-3">Resumen del Análisis</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
+      <div className="pt-4 border-t border-border">
+        <h3 className="font-medium text-foreground mb-3 text-sm">Resumen del Análisis</h3>
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="text-center p-2 bg-muted/50 rounded-lg">
             <div className="font-medium text-foreground">Nivel de Urgencia</div>
-            <div className="text-lg font-bold text-primary mt-1">
+            <div className="text-base font-bold text-primary mt-1">
               {analysisData?.urgencyLevel}
             </div>
           </div>
           
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
+          <div className="text-center p-2 bg-muted/50 rounded-lg">
             <div className="font-medium text-foreground">Confianza</div>
-            <div className="text-lg font-bold text-accent mt-1">
+            <div className="text-base font-bold text-accent mt-1">
               {analysisData?.confidence}%
             </div>
           </div>
           
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
+          <div className="text-center p-2 bg-muted/50 rounded-lg">
             <div className="font-medium text-foreground">Procesado</div>
-            <div className="text-sm font-medical-data text-muted-foreground mt-1">
+            <div className="text-xs font-medical-data text-muted-foreground mt-1">
               {analysisData?.processedAt}
             </div>
           </div>

@@ -7,73 +7,127 @@ import UrgencyAssessment from './components/UrgencyAssessment';
 import AIAnalysisPanel from './components/AIAnalysisPanel';
 import CaseHistoryTimeline from './components/CaseHistoryTimeline';
 import InteractiveActions from './components/InteractiveActions';
+import MiniChatBot from './components/MiniChatBot';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
+import API_URL from '../../utils/api';
 
-const PatientDetails = () => {
+const PatientDetails = () => { 
   const { id } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [patient, setPatient] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Mock patient data
-  const mockPatient = {
-    id: "EMG-001",
-    name: "María González Rodríguez",
-    age: 34,
-    gender: "Femenino",
-    bloodType: "O+",
-    contactNumber: "+34 612 345 678",
-    emergencyContact: "Juan González - Esposo - +34 698 765 432",
-    allergies: "Penicilina, Polen",
-    conditions: "Asma leve, Hipertensión controlada",
-    symptoms: "Dolor torácico intenso, dificultad respiratoria, sudoración excesiva",
-    urgencyLevel: "crítico",
-    status: "en evaluación",
-    arrivalTime: new Date(Date.now() - 1800000),
-    aiAnalysis: {
-      diagnosis: "Posible infarto agudo de miocardio",
-      confidence: 92,
-      recommendedAction: "Traslado inmediato a UCI",
-      riskFactors: ["Antecedentes familiares de cardiopatía", "Estrés laboral elevado"],
-      vitalSigns: {
-        heartRate: "110 bpm",
-        bloodPressure: "145/95 mmHg",
-        temperature: "37.2°C",
-        oxygenSaturation: "94%"
-      }
-    },
-    timeline: [
-      {
-        time: "14:30",
-        event: "Llegada al servicio de urgencias",
-        type: "arrival"
-      },
-      {
-        time: "14:32",
-        event: "Registro inicial completado",
-        type: "registration"
-      },
-      {
-        time: "14:35",
-        event: "Análisis de IA completado",
-        type: "analysis"
-      },
-      {
-        time: "14:40",
-        event: "Evaluación médica iniciada",
-        type: "evaluation"
-      }
-    ]
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('ia911_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  const mapUrgencyLevel = (level) => {
+    const map = { CRITICO: 'crítico', ALTO: 'alto', MODERADO: 'moderado', BAJO: 'bajo' };
+    return map[level] || level?.toLowerCase();
+  };
+
+  const mapStatus = (status) => {
+    const map = {
+      EN_EVALUACION: 'en evaluación',
+      EN_TRATAMIENTO: 'en tratamiento',
+      ESTABLE: 'estable',
+      DADO_DE_ALTA: 'dado de alta'
+    };
+    return map[status] || status?.toLowerCase();
   };
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
+    if (!id || id === 'undefined') {
+      navigate('/patient-dashboard');
+      return;
+    }
 
-    return () => clearTimeout(timer);
+    const fetchPatient = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/patients/${id}`, {
+          headers: getAuthHeaders()
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem('ia911_user');
+          localStorage.removeItem('ia911_token');
+          navigate('/login');
+          return;
+        }
+
+        if (response.status === 404) {
+          setError('Paciente no encontrado');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!response.ok) throw new Error('Error al obtener paciente');
+
+        const data = await response.json();
+
+        const lastAnalysis = data.aiAnalyses?.[0];
+        const lastVitals = data.vitalSigns?.[0];
+
+        setPatient({
+          id: data.code,
+          dbId: data.id,
+          name: data.name,
+          age: data.age,
+          gender: data.gender,
+          bloodType: data.bloodType || 'No registrado',
+          contactNumber: data.contactNumber || 'No registrado',
+          emergencyContact: data.emergencyContact || 'No registrado',
+          allergies: data.allergies || 'Ninguna conocida',
+          conditions: data.conditions || 'Ninguna conocida',
+          symptoms: data.symptoms,
+          urgencyLevel: mapUrgencyLevel(data.urgencyLevel),
+          status: mapStatus(data.status),
+          arrivalTime: new Date(data.arrivalTime),
+          aiAnalysis: lastAnalysis ? {
+            diagnosis: lastAnalysis.diagnosis,
+            confidence: lastAnalysis.confidence,
+            recommendedAction: lastAnalysis.recommendedAction,
+            riskFactors: lastAnalysis.riskFactors || [],
+            vitalSigns: lastVitals ? {
+              heartRate: lastVitals.heartRate || 'N/D',
+              bloodPressure: lastVitals.bloodPressure || 'N/D',
+              temperature: lastVitals.temperature || 'N/D',
+              oxygenSaturation: lastVitals.oxygenSaturation || 'N/D'
+            } : null
+          } : {
+            diagnosis: 'Pendiente de análisis',
+            confidence: 0,
+            recommendedAction: 'En espera',
+            riskFactors: [],
+            vitalSigns: lastVitals ? {
+              heartRate: lastVitals.heartRate || 'N/D',
+              bloodPressure: lastVitals.bloodPressure || 'N/D',
+              temperature: lastVitals.temperature || 'N/D',
+              oxygenSaturation: lastVitals.oxygenSaturation || 'N/D'
+            } : null
+          },
+          timeline: (data.caseEntries || []).map(entry => ({
+            time: new Date(entry.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+            event: entry.title,
+            type: entry.type
+          }))
+        });
+      } catch (err) {
+        setError('Error al cargar los datos del paciente');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) fetchPatient();
   }, [id]);
 
   if (isLoading) {
@@ -82,6 +136,20 @@ const PatientDetails = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando detalles del paciente...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !patient) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Icon name="AlertCircle" size={48} className="text-error mx-auto mb-4" />
+          <p className="text-foreground font-medium mb-2">{error || 'Paciente no encontrado'}</p>
+          <Button variant="outline" onClick={() => navigate('/patient-dashboard')}>
+            Volver al Dashboard
+          </Button>
         </div>
       </div>
     );
@@ -110,7 +178,7 @@ const PatientDetails = () => {
                   </Button>
                 </div>
                 
-                <InteractiveActions patientId={mockPatient.id} />
+                <InteractiveActions patientId={patient.id} />
               </div>
             </div>
 
@@ -118,26 +186,28 @@ const PatientDetails = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column - Patient Info & Urgency */}
               <div className="lg:col-span-1 space-y-6">
-                <PatientInfoCard patient={mockPatient} />
+                <PatientInfoCard patient={patient} />
                 <UrgencyAssessment 
-                  urgencyLevel={mockPatient.urgencyLevel}
-                  status={mockPatient.status}
+                  urgencyLevel={patient.urgencyLevel}
+                  status={patient.status}
                 />
               </div>
 
               {/* Middle Column - AI Analysis */}
               <div className="lg:col-span-1">
-                <AIAnalysisPanel analysis={mockPatient.aiAnalysis} />
+                <AIAnalysisPanel analysis={patient.aiAnalysis} />
               </div>
 
               {/* Right Column - Timeline */}
               <div className="lg:col-span-1">
-                <CaseHistoryTimeline timeline={mockPatient.timeline} />
+                <CaseHistoryTimeline timeline={patient.timeline} />
               </div>
             </div>
           </div>
         </main>
       </div>
+
+      <MiniChatBot patientId={patient.dbId} patientName={patient.name} />
     </>
   );
 };

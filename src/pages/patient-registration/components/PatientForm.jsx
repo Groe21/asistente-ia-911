@@ -4,17 +4,26 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
+import API_URL from '../../../utils/api';
 
 const PatientForm = ({ onSubmit }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     age: '',
+    gender: '',
     symptoms: '',
     status: ''
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const genderOptions = [
+    { value: '', label: 'Seleccionar género...' },
+    { value: 'Masculino', label: 'Masculino' },
+    { value: 'Femenino', label: 'Femenino' },
+    { value: 'Otro', label: 'Otro' }
+  ];
 
   const statusOptions = [
     { value: '', label: 'Seleccionar estado inicial...' },
@@ -44,6 +53,10 @@ const PatientForm = ({ onSubmit }) => {
       if (isNaN(age) || age < 0 || age > 120) {
         newErrors.age = 'Ingrese una edad válida (0-120 años)';
       }
+    }
+
+    if (!formData?.gender) {
+      newErrors.gender = 'El género es obligatorio';
     }
 
     if (!formData?.symptoms?.trim()) {
@@ -85,31 +98,43 @@ const PatientForm = ({ onSubmit }) => {
     setIsSubmitting(true);
 
     try {
-      // Simulate AI processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const patientData = {
-        id: `PAT-${Date.now()}`,
-        name: formData?.name?.trim(),
-        age: parseInt(formData?.age),
-        symptoms: formData?.symptoms?.trim(),
-        status: formData?.status,
-        registrationTime: new Date()?.toISOString(),
-        urgencyLevel: 'Evaluando...'
-      };
-
-      onSubmit(patientData);
-      
-      // Navigate to AI analysis results
-      navigate('/ai-analysis-results', { 
-        state: { 
-          patientData,
-          isNewRegistration: true 
-        } 
+      const token = localStorage.getItem('ia911_token');
+      const response = await fetch(`${API_URL}/patients`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          age: parseInt(formData.age),
+          gender: formData.gender,
+          symptoms: formData.symptoms.trim(),
+          urgencyLevel: formData.status === 'shock' || formData.status === 'inconsciente' ? 'CRITICO'
+            : formData.status === 'sangrado_activo' || formData.status === 'dificultad_respiratoria' ? 'ALTO'
+            : formData.status === 'dolor_severo' || formData.status === 'semiconsciente' ? 'MODERADO'
+            : 'BAJO'
+        })
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('ia911_user');
+        localStorage.removeItem('ia911_token');
+        navigate('/login');
+        return;
+      }
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al registrar paciente');
+      }
+
+      const patient = await response.json();
+      onSubmit(patient);
+
+      navigate('/patient-dashboard');
     } catch (error) {
-      setErrors({ submit: 'Error al procesar el registro. Intente nuevamente.' });
+      setErrors({ submit: error.message || 'Error al procesar el registro. Intente nuevamente.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -154,6 +179,17 @@ const PatientForm = ({ onSubmit }) => {
           required
           min="0"
           max="120"
+          className="mb-4"
+        />
+
+        {/* Patient Gender */}
+        <Select
+          label="Género"
+          options={genderOptions}
+          value={formData?.gender}
+          onChange={(value) => handleInputChange('gender', value)}
+          error={errors?.gender}
+          required
           className="mb-4"
         />
 

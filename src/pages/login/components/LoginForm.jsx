@@ -3,24 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
+import API_URL from '../../../utils/api';
 
-const LoginForm = () => {
+const LoginForm = ({ onShowRegister }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: '',
+    cedula: '',
     password: ''
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // Mock credentials for different user types
-  const mockCredentials = [
-    { username: 'admin@ia911.es', password: 'Admin123!', role: 'Administrador' },
-    { username: 'medico@ia911.es', password: 'Medico123!', role: 'Médico' },
-    { username: 'estudiante@ia911.es', password: 'Estudiante123!', role: 'Estudiante' },
-    { username: 'instructor@ia911.es', password: 'Instructor123!', role: 'Instructor' }
-  ];
 
   const handleInputChange = (e) => {
     const { name, value } = e?.target;
@@ -29,7 +22,6 @@ const LoginForm = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors?.[name]) {
       setErrors(prev => ({
         ...prev,
@@ -41,10 +33,8 @@ const LoginForm = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData?.username?.trim()) {
-      newErrors.username = 'El nombre de usuario es obligatorio';
-    } else if (!formData?.username?.includes('@')) {
-      newErrors.username = 'Ingrese un email válido';
+    if (!formData?.cedula?.trim()) {
+      newErrors.cedula = 'La cédula es obligatoria';
     }
 
     if (!formData?.password?.trim()) {
@@ -60,53 +50,45 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e?.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cedula: formData.cedula,
+          password: formData.password
+        })
+      });
 
-      // Check credentials
-      const validCredential = mockCredentials?.find(
-        cred => cred?.username === formData?.username && cred?.password === formData?.password
-      );
+      const data = await response.json();
 
-      if (validCredential) {
-        // Store user session
-        localStorage.setItem('ia911_user', JSON.stringify({
-          username: validCredential?.username,
-          role: validCredential?.role,
-          loginTime: new Date()?.toISOString()
-        }));
-
-        // Navigate to dashboard
-        navigate('/patient-dashboard');
-      } else {
-        setErrors({
-          general: 'Credenciales incorrectas. Verifique su usuario y contraseña.'
-        });
+      if (!response.ok) {
+        setErrors({ general: data.error || 'Credenciales incorrectas' });
+        return;
       }
+
+      // Guardar sesión y token
+      localStorage.setItem('ia911_user', JSON.stringify(data.user));
+      localStorage.setItem('ia911_token', data.token);
+
+      navigate('/patient-dashboard');
     } catch (error) {
       setErrors({
-        general: 'Error de conexión. Intente nuevamente.'
+        general: 'Error de conexión con el servidor. Verifique que el backend esté corriendo.'
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleForgotPassword = () => {
-    alert('Funcionalidad de recuperación de contraseña en desarrollo.\n\nCredenciales de prueba:\n• admin@ia911.es / Admin123!\n• medico@ia911.es / Medico123!\n• estudiante@ia911.es / Estudiante123!');
-  };
-
   return (
     <div className="w-full max-w-md mx-auto">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* General Error Message */}
+        {/* Error general */}
         {errors?.general && (
           <div className="p-4 bg-error/10 border border-error/20 rounded-lg">
             <div className="flex items-center space-x-2">
@@ -116,21 +98,21 @@ const LoginForm = () => {
           </div>
         )}
 
-        {/* Username Field */}
+        {/* Campo Cédula */}
         <Input
-          label="Correo Electrónico"
-          type="email"
-          name="username"
-          value={formData?.username}
+          label="Cédula"
+          type="text"
+          name="cedula"
+          value={formData?.cedula}
           onChange={handleInputChange}
-          placeholder="usuario@ia911.es"
-          error={errors?.username}
+          placeholder="Ingrese su número de cédula"
+          error={errors?.cedula}
           required
           disabled={isLoading}
           className="w-full"
         />
 
-        {/* Password Field */}
+        {/* Campo Contraseña */}
         <div className="relative">
           <Input
             label="Contraseña"
@@ -154,7 +136,7 @@ const LoginForm = () => {
           </button>
         </div>
 
-        {/* Submit Button */}
+        {/* Botón Iniciar Sesión */}
         <Button
           type="submit"
           variant="default"
@@ -167,30 +149,27 @@ const LoginForm = () => {
           {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
         </Button>
 
-        {/* Forgot Password Link */}
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={handleForgotPassword}
-            className="text-sm text-primary hover:text-primary/80 transition-clinical"
-            disabled={isLoading}
-          >
-            ¿Olvidó su contraseña?
-          </button>
-        </div>
-
-        {/* Demo Credentials Info */}
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h4 className="text-sm font-medium text-foreground mb-2 flex items-center">
-            <Icon name="Info" size={16} className="mr-2 text-accent" />
-            Credenciales de Demostración
-          </h4>
-          <div className="space-y-1 text-xs text-muted-foreground font-medical-data">
-            <div>• admin@ia911.es / Admin123!</div>
-            <div>• medico@ia911.es / Medico123!</div>
-            <div>• estudiante@ia911.es / Estudiante123!</div>
+        {/* Separador */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-card text-muted-foreground">¿No tiene cuenta?</span>
           </div>
         </div>
+
+        {/* Botón Crear Cuenta */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onShowRegister}
+          className="w-full"
+          iconName="UserPlus"
+          iconPosition="left"
+        >
+          Crear Nueva Cuenta
+        </Button>
       </form>
     </div>
   );

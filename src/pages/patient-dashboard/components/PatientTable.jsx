@@ -115,7 +115,7 @@ const PatientTable = ({ patients, onStatusUpdate, onBulkAction }) => {
   };
 
   const handlePatientClick = (patient) => {
-    navigate('/patient-details', { state: { patientData: patient } });
+    navigate(`/patient-details/${patient.dbId}`);
   };
 
   return (

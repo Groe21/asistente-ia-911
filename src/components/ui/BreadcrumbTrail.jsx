@@ -33,7 +33,8 @@ const BreadcrumbTrail = ({ customBreadcrumbs = null }) => {
     }
 
     // Add current page
-    const currentRoute = routeMap?.[location?.pathname];
+    const currentRoute = routeMap?.[location?.pathname] 
+      || (location?.pathname?.startsWith('/patient-details/') ? routeMap['/patient-details'] : null);
     if (currentRoute) {
       breadcrumbs?.push({
         label: currentRoute?.label,

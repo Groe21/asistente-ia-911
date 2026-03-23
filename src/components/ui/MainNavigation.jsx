@@ -58,6 +58,8 @@ const MainNavigation = ({ isCollapsed = false, onToggleCollapse }) => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('ia911_user');
+    localStorage.removeItem('ia911_token');
     navigate('/login');
     setIsMobileMenuOpen(false);
   };

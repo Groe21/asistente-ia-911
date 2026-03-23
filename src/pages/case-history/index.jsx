@@ -8,11 +8,15 @@ import StatsSummary from './components/StatsSummary';
 import ExportModal from './components/ExportModal';
 
 import Button from '../../components/ui/Button';
+import API_URL from '../../utils/api';
 
 const CaseHistory = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [stats, setStats] = useState({ totalCasos: 0, analisisCompletados: 0, casosCriticos: 0, intervencionesMedicas: 0 });
+  const [timelineEntries, setTimelineEntries] = useState([]);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     busqueda: '',
     tipoEvento: 'todos',
@@ -22,136 +26,64 @@ const CaseHistory = () => {
     fechaFin: ''
   });
 
-  // Mock data for case history
-  const mockStats = {
-    totalCasos: 247,
-    analisisCompletados: 189,
-    casosCriticos: 23,
-    intervencionesMedicas: 156
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('ia911_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
   };
 
-  const mockTimelineEntries = [
-    {
-      id: 1,
-      tipo: 'registro',
-      titulo: 'Nuevo paciente registrado',
-      descripcion: 'María González Fernández ha sido registrada en el sistema con síntomas de dolor torácico y dificultad respiratoria.',
-      timestamp: '02/11/2024 14:45',
-      usuario: 'Dr. Carlos Mendoza',
-      nivelUrgencia: 'alto',
-      detalles: {
-        paciente_id: 'P-2024-0247',
-        edad: '45 años',
-        sintomas_principales: 'Dolor torácico, disnea',
-        signos_vitales: 'PA: 140/90, FC: 95 bpm'
-      },
-      acciones: [
-        { texto: 'Ver detalles', icono: 'Eye' },
-        { texto: 'Añadir nota', icono: 'Plus' }
-      ]
-    },
-    {
-      id: 2,
-      tipo: 'analisis_ia',
-      titulo: 'Análisis IA completado',
-      descripcion: 'El sistema de inteligencia artificial ha procesado los síntomas y determinado un nivel de urgencia alto con recomendación de evaluación cardiológica inmediata.',
-      timestamp: '02/11/2024 14:47',
-      usuario: 'Sistema IA-911',
-      nivelUrgencia: 'alto',
-      detalles: {
-        confianza_analisis: '87%',
-        tiempo_procesamiento: '2.3 segundos',
-        recomendacion_principal: 'Evaluación cardiológica urgente',
-        diagnosticos_posibles: 'Síndrome coronario agudo, embolia pulmonar'
-      },
-      acciones: [
-        { texto: 'Ver análisis completo', icono: 'Brain' },
-        { texto: 'Revisar algoritmo', icono: 'Settings' }
-      ]
-    },
-    {
-      id: 3,
-      tipo: 'intervencion',
-      titulo: 'Intervención médica realizada',
-      descripcion: 'Se ha iniciado protocolo de atención para síndrome coronario agudo. Paciente trasladada a unidad de cuidados intensivos.',
-      timestamp: '02/11/2024 15:12',
-      usuario: 'Dra. Ana Ruiz',
-      nivelUrgencia: 'crítico',
-      detalles: {
-        protocolo_aplicado: 'SCA - Síndrome Coronario Agudo',
-        medicacion_administrada: 'Aspirina 300mg, Clopidogrel 600mg',
-        destino: 'UCI - Unidad de Cuidados Intensivos',
-        tiempo_respuesta: '25 minutos'
-      },
-      acciones: [
-        { texto: 'Seguimiento', icono: 'Activity' },
-        { texto: 'Actualizar estado', icono: 'RefreshCw' }
-      ]
-    },
-    {
-      id: 4,
-      tipo: 'cambio_estado',
-      titulo: 'Estado actualizado a estable',
-      descripcion: 'El paciente ha respondido favorablemente al tratamiento. Signos vitales estabilizados y dolor torácico controlado.',
-      timestamp: '02/11/2024 18:30',
-      usuario: 'Dr. Luis Morales',
-      nivelUrgencia: 'moderado',
-      detalles: {
-        estado_anterior: 'Crítico',
-        estado_actual: 'Estable',
-        signos_vitales: 'PA: 125/80, FC: 78 bpm, SatO2: 98%',
-        observaciones: 'Dolor torácico resuelto, paciente consciente y orientada'
-      },
-      acciones: [
-        { texto: 'Continuar monitoreo', icono: 'Monitor' }
-      ]
-    },
-    {
-      id: 5,
-      tipo: 'nota',
-      titulo: 'Nota educativa añadida',
-      descripcion: 'Caso marcado para revisión en sesión de entrenamiento. Excelente ejemplo de aplicación correcta del protocolo SCA.',
-      timestamp: '02/11/2024 19:15',
-      usuario: 'Dr. Roberto Silva - Coordinador de Entrenamiento',
-      detalles: {
-        categoria_educativa: 'Cardiología de emergencia',
-        puntos_clave: 'Reconocimiento temprano, aplicación de protocolo, trabajo en equipo',
-        nivel_dificultad: 'Intermedio',
-        tiempo_caso: '4 horas 45 minutos'
-      },
-      acciones: [
-        { texto: 'Usar en entrenamiento', icono: 'GraduationCap' },
-        { texto: 'Compartir caso', icono: 'Share' }
-      ]
-    },
-    {
-      id: 6,
-      tipo: 'registro',
-      titulo: 'Paciente pediátrico registrado',
-      descripcion: 'Menor de 8 años con fiebre alta y convulsiones. Acompañado por madre, síntomas iniciaron hace 2 horas.',
-      timestamp: '02/11/2024 12:20',
-      usuario: 'Enfermera Patricia López',
-      nivelUrgencia: 'crítico',
-      detalles: {
-        paciente_id: 'P-2024-0246',
-        edad: '8 años',
-        sintomas_principales: 'Fiebre 39.5°C, convulsiones tónico-clónicas',
-        acompañante: 'Madre - Carmen Jiménez'
-      },
-      acciones: [
-        { texto: 'Protocolo pediátrico', icono: 'Baby' },
-        { texto: 'Contactar pediatra', icono: 'Phone' }
-      ]
-    }
-  ];
+  const mapUrgencyLevel = (level) => {
+    if (!level) return undefined;
+    const map = { CRITICO: 'crítico', ALTO: 'alto', MODERADO: 'moderado', BAJO: 'bajo' };
+    return map[level] || level?.toLowerCase();
+  };
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const headers = getAuthHeaders();
 
-    return () => clearTimeout(timer);
+        const [entriesRes, statsRes] = await Promise.all([
+          fetch(`${API_URL}/history`, { headers }),
+          fetch(`${API_URL}/history/stats`, { headers })
+        ]);
+
+        if (entriesRes.status === 401) {
+          localStorage.removeItem('ia911_user');
+          localStorage.removeItem('ia911_token');
+          navigate('/login');
+          return;
+        }
+
+        const entriesData = await entriesRes.json();
+        const statsData = await statsRes.json();
+
+        setStats(statsData);
+        setTimelineEntries(entriesData.map(entry => ({
+          id: entry.id,
+          tipo: entry.type,
+          titulo: entry.title,
+          descripcion: entry.description,
+          timestamp: new Date(entry.createdAt).toLocaleString('es-ES'),
+          usuario: entry.user ? `${entry.user.nombre} ${entry.user.apellido}` : 'Sistema',
+          nivelUrgencia: mapUrgencyLevel(entry.urgencyLevel),
+          detalles: entry.details || {},
+          acciones: [
+            { texto: 'Ver detalles', icono: 'Eye' }
+          ]
+        })));
+        setError(null);
+      } catch (err) {
+        setError('Error al cargar el historial. Verifique que el backend esté corriendo.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleFilterChange = (key, value) => {
@@ -178,7 +110,7 @@ const CaseHistory = () => {
     alert(`Exportando historial en formato ${exportConfig?.formato?.toUpperCase()}...`);
   };
 
-  const filteredEntries = mockTimelineEntries?.filter(entry => {
+  const filteredEntries = timelineEntries?.filter(entry => {
     // Apply search filter
     if (filters?.busqueda) {
       const searchTerm = filters?.busqueda?.toLowerCase();
@@ -246,8 +178,17 @@ const CaseHistory = () => {
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-error font-medium">{error}</span>
+              </div>
+            </div>
+          )}
+
           {/* Statistics Summary */}
-          <StatsSummary stats={mockStats} />
+          <StatsSummary stats={stats} />
 
           {/* Filter Controls */}
           <FilterControls

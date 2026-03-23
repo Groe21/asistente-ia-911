@@ -1,31 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoginHeader from './components/LoginHeader';
 import LoginForm from './components/LoginForm';
+import RegisterForm from './components/RegisterForm';
 import LoginFooter from './components/LoginFooter';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
     const storedUser = localStorage.getItem('ia911_user');
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser);
-        // Redirect to dashboard if valid session exists
-        if (userData?.username) {
+        if (userData?.cedula) {
           navigate('/patient-dashboard');
         }
       } catch (error) {
-        // Clear invalid session data
         localStorage.removeItem('ia911_user');
+        localStorage.removeItem('ia911_token');
       }
     }
 
-    // Set page title
-    document.title = 'Iniciar Sesión - IA-911 Assist';
-  }, [navigate]);
+    document.title = showRegister ? 'Crear Cuenta - IA-911 Assist' : 'Iniciar Sesión - IA-911 Assist';
+  }, [navigate, showRegister]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,29 +45,17 @@ const LoginPage = () => {
           {/* Login Card */}
           <div className="bg-card border border-border rounded-xl shadow-clinical-lg p-8">
             {/* Header Section */}
-            <LoginHeader />
+            {!showRegister && <LoginHeader />}
 
-            {/* Form Section */}
-            <LoginForm />
+            {/* Form Section — Login o Registro */}
+            {showRegister ? (
+              <RegisterForm onShowLogin={() => setShowRegister(false)} />
+            ) : (
+              <LoginForm onShowRegister={() => setShowRegister(true)} />
+            )}
 
             {/* Footer Section */}
-            <LoginFooter />
-          </div>
-
-          {/* Additional Information Card */}
-          <div className="mt-6 bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-4">
-            <div className="text-center">
-              <h3 className="text-sm font-medium text-foreground mb-2">
-                ¿Nuevo en el sistema?
-              </h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                Contacte con su administrador para obtener credenciales de acceso 
-                al sistema de entrenamiento médico.
-              </p>
-              <button className="text-sm text-primary hover:text-primary/80 transition-clinical font-medium">
-                Solicitar Acceso
-              </button>
-            </div>
+            {!showRegister && <LoginFooter />}
           </div>
         </div>
       </div>

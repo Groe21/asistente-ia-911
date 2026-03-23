@@ -23,7 +23,8 @@ const Routes = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/case-history" element={<CaseHistory />} />
         <Route path="/ai-analysis-results" element={<AIAnalysisResults />} />
-        <Route path="/patient-details" element={<PatientDetails />} />
+        <Route path="/ai-analysis-results/:patientId" element={<AIAnalysisResults />} />
+        <Route path="/patient-details/:id" element={<PatientDetails />} />
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>
       </ErrorBoundary>

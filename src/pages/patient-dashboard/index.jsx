@@ -6,8 +6,10 @@ import DashboardMetrics from './components/DashboardMetrics';
 import PatientTable from './components/PatientTable';
 import QuickActions from './components/QuickActions';
 import UrgencyDistribution from './components/UrgencyDistribution';
+import GeneralChatBot from './components/GeneralChatBot';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
+import API_URL from '../../utils/api';
 
 const PatientDashboard = () => {
   const [patients, setPatients] = useState([]);
@@ -15,121 +17,31 @@ const PatientDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Mock patient data for training simulation
-  const mockPatients = [
-    {
-      id: "EMG-001",
-      name: "María González Rodríguez",
-      age: 34,
-      symptoms: "Dolor torácico intenso, dificultad respiratoria, sudoración excesiva",
-      urgencyLevel: "crítico",
-      status: "en evaluación",
-      timestamp: new Date(Date.now() - 1800000), // 30 minutes ago
-      aiAnalysis: "Posible infarto agudo de miocardio",
-      recommendedAction: "Traslado inmediato a UCI"
-    },
-    {
-      id: "EMG-002", 
-      name: "Carlos Martín López",
-      age: 67,
-      symptoms: "Confusión mental, debilidad en lado derecho, dificultad para hablar",
-      urgencyLevel: "crítico",
-      status: "en tratamiento",
-      timestamp: new Date(Date.now() - 2700000), // 45 minutes ago
-      aiAnalysis: "Probable accidente cerebrovascular",
-      recommendedAction: "Protocolo de ictus activado"
-    },
-    {
-      id: "EMG-003",
-      name: "Ana Fernández Castro",
-      age: 28,
-      symptoms: "Fractura abierta en antebrazo derecho, sangrado moderado",
-      urgencyLevel: "alto",
-      status: "en tratamiento",
-      timestamp: new Date(Date.now() - 3600000), // 1 hour ago
-      aiAnalysis: "Fractura de radio y cúbito",
-      recommendedAction: "Cirugía ortopédica urgente"
-    },
-    {
-      id: "EMG-004",
-      name: "José Antonio Ruiz",
-      age: 45,
-      symptoms: "Dolor abdominal severo, náuseas, vómitos, fiebre alta",
-      urgencyLevel: "alto",
-      status: "en evaluación",
-      timestamp: new Date(Date.now() - 4500000), // 1.25 hours ago
-      aiAnalysis: "Posible apendicitis aguda",
-      recommendedAction: "Evaluación quirúrgica inmediata"
-    },
-    {
-      id: "EMG-005",
-      name: "Laura Sánchez Moreno",
-      age: 52,
-      symptoms: "Cefalea intensa, visión borrosa, tensión arterial elevada",
-      urgencyLevel: "moderado",
-      status: "estable",
-      timestamp: new Date(Date.now() - 5400000), // 1.5 hours ago
-      aiAnalysis: "Crisis hipertensiva",
-      recommendedAction: "Monitorización y medicación antihipertensiva"
-    },
-    {
-      id: "EMG-006",
-      name: "Miguel Ángel Torres",
-      age: 39,
-      symptoms: "Dolor lumbar moderado, limitación de movimiento",
-      urgencyLevel: "moderado",
-      status: "en evaluación",
-      timestamp: new Date(Date.now() - 6300000), // 1.75 hours ago
-      aiAnalysis: "Lumbalgia mecánica",
-      recommendedAction: "Analgesia y fisioterapia"
-    },
-    {
-      id: "EMG-007",
-      name: "Carmen Jiménez Vega",
-      age: 31,
-      symptoms: "Corte superficial en mano izquierda, sangrado leve",
-      urgencyLevel: "bajo",
-      status: "dado de alta",
-      timestamp: new Date(Date.now() - 7200000), // 2 hours ago
-      aiAnalysis: "Herida superficial",
-      recommendedAction: "Limpieza y sutura menor"
-    },
-    {
-      id: "EMG-008",
-      name: "Francisco Herrera Díaz",
-      age: 26,
-      symptoms: "Esguince de tobillo, dolor moderado, inflamación",
-      urgencyLevel: "bajo",
-      status: "estable",
-      timestamp: new Date(Date.now() - 8100000), // 2.25 hours ago
-      aiAnalysis: "Esguince grado II",
-      recommendedAction: "Inmovilización y antiinflamatorios"
-    },
-    {
-      id: "EMG-009",
-      name: "Isabel Morales Ruiz",
-      age: 58,
-      symptoms: "Mareos ocasionales, fatiga leve",
-      urgencyLevel: "bajo",
-      status: "en evaluación",
-      timestamp: new Date(Date.now() - 9000000), // 2.5 hours ago
-      aiAnalysis: "Posible hipotensión ortostática",
-      recommendedAction: "Observación y hidratación"
-    },
-    {
-      id: "EMG-010",
-      name: "Roberto García Mendoza",
-      age: 42,
-      symptoms: "Resfriado común, congestión nasal, tos leve",
-      urgencyLevel: "bajo",
-      status: "dado de alta",
-      timestamp: new Date(Date.now() - 10800000), // 3 hours ago
-      aiAnalysis: "Infección respiratoria viral",
-      recommendedAction: "Tratamiento sintomático domiciliario"
-    }
-  ];
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('ia911_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  const mapUrgencyLevel = (level) => {
+    const map = { CRITICO: 'crítico', ALTO: 'alto', MODERADO: 'moderado', BAJO: 'bajo' };
+    return map[level] || level?.toLowerCase();
+  };
+
+  const mapStatus = (status) => {
+    const map = {
+      EN_EVALUACION: 'en evaluación',
+      EN_TRATAMIENTO: 'en tratamiento',
+      ESTABLE: 'estable',
+      DADO_DE_ALTA: 'dado de alta'
+    };
+    return map[status] || status?.toLowerCase();
+  };
 
   // Calculate metrics from patient data
   const calculateMetrics = (patientData) => {
@@ -139,26 +51,53 @@ const PatientDashboard = () => {
     const moderateCases = patientData?.filter(p => p?.urgencyLevel === 'moderado')?.length;
     const lowCases = patientData?.filter(p => p?.urgencyLevel === 'bajo')?.length;
 
-    return {
-      totalCases,
-      criticalCases,
-      highCases,
-      moderateCases,
-      lowCases
-    };
+    return { totalCases, criticalCases, highCases, moderateCases, lowCases };
+  };
+
+  const fetchPatients = async () => {
+    try {
+      const response = await fetch(`${API_URL}/patients`, {
+        headers: getAuthHeaders()
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('ia911_user');
+        localStorage.removeItem('ia911_token');
+        navigate('/login');
+        return;
+      }
+
+      if (!response.ok) throw new Error('Error al obtener pacientes');
+
+      const data = await response.json();
+
+      const mapped = data.map(p => ({
+        id: p.code,
+        dbId: p.id,
+        name: p.name,
+        age: p.age,
+        symptoms: p.symptoms,
+        urgencyLevel: mapUrgencyLevel(p.urgencyLevel),
+        status: mapStatus(p.status),
+        timestamp: new Date(p.arrivalTime),
+        aiAnalysis: p.aiAnalyses?.[0]?.diagnosis || 'Pendiente de análisis',
+        recommendedAction: p.aiAnalyses?.[0]?.recommendedAction || 'En espera'
+      }));
+
+      setPatients(mapped);
+      setMetrics(calculateMetrics(mapped));
+      setLastUpdate(new Date());
+      setError(null);
+    } catch (err) {
+      setError('Error al cargar pacientes. Verifique que el backend esté corriendo.');
+    }
   };
 
   // Load initial data
   useEffect(() => {
     const loadDashboardData = async () => {
       setIsLoading(true);
-      
-      // Simulate API loading delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setPatients(mockPatients);
-      setMetrics(calculateMetrics(mockPatients));
-      setLastUpdate(new Date());
+      await fetchPatients();
       setIsLoading(false);
     };
 
@@ -167,21 +106,14 @@ const PatientDashboard = () => {
 
   const handleRefresh = async () => {
     setIsLoading(true);
-    
-    // Simulate refresh delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // In a real app, this would fetch fresh data from API
-    setMetrics(calculateMetrics(patients));
-    setLastUpdate(new Date());
+    await fetchPatients();
     setIsLoading(false);
   };
 
   const handleStatusUpdate = (patientId) => {
-    // Navigate to patient details for status update
     const patient = patients?.find(p => p?.id === patientId);
     if (patient) {
-      navigate('/patient-details', { state: { patientData: patient } });
+      navigate(`/patient-details/${patient.dbId}`);
     }
   };
 
@@ -262,6 +194,16 @@ const PatientDashboard = () => {
             lastUpdate={lastUpdate}
           />
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Icon name="AlertCircle" size={16} className="text-error" />
+                <span className="text-sm text-error font-medium">{error}</span>
+              </div>
+            </div>
+          )}
+
           {/* Dashboard Metrics */}
           <DashboardMetrics metrics={metrics} />
 
@@ -300,6 +242,9 @@ const PatientDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Chatbot General IA-911 */}
+      <GeneralChatBot />
     </div>
   );
 };
