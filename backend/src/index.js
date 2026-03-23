@@ -42,12 +42,24 @@ app.get('/api/health', async (req, res) => {
 
 // Servir frontend estático en producción
 const frontendPath = path.join(__dirname, '../../dist');
-app.use(express.static(frontendPath));
+const fs = require('fs');
+const indexHtmlPath = path.join(frontendPath, 'index.html');
 
-// Todas las rutas no-API sirven el index.html (SPA)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
+if (fs.existsSync(indexHtmlPath)) {
+  app.use(express.static(frontendPath));
+  // Todas las rutas no-API sirven el index.html (SPA)
+  app.get('*', (req, res) => {
+    res.sendFile(indexHtmlPath);
+  });
+  console.log('📦 Sirviendo frontend desde dist/');
+} else {
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.status(503).json({ error: 'Frontend no disponible. Ejecuta npm run build.' });
+    }
+  });
+  console.log('⚠️  dist/index.html no encontrado - solo API disponible');
+}
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
