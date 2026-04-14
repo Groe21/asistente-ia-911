@@ -40,10 +40,10 @@ const LoginPage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
+      <div className="relative z-10 flex items-center justify-center min-h-screen px-3 py-6 sm:p-4">
         <div className="w-full max-w-lg">
           {/* Login Card */}
-          <div className="bg-card border border-border rounded-xl shadow-clinical-lg p-8">
+          <div className="bg-card border border-border rounded-xl shadow-clinical-lg p-4 sm:p-8">
             {/* Header Section */}
             {!showRegister && <LoginHeader />}
 
@@ -60,14 +60,6 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Emergency Contact Banner */}
-      <div className="fixed bottom-0 left-0 right-0 bg-error/10 border-t border-error/20 p-3 z-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-sm text-error font-medium">
-            ⚠️ IMPORTANTE: Este es un sistema de entrenamiento. En caso de emergencia real, llame al 112
-          </p>
-        </div>
-      </div>
     </div>
   );
 };

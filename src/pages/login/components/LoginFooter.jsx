@@ -5,29 +5,7 @@ const LoginFooter = () => {
   const currentYear = new Date()?.getFullYear();
 
   return (
-    <div className="mt-8 space-y-6">
-      {/* Support Information */}
-      <div className="bg-muted/50 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-foreground mb-3 flex items-center">
-          <Icon name="HelpCircle" size={16} className="mr-2 text-accent" />
-          Soporte Técnico
-        </h3>
-        <div className="space-y-2 text-xs text-muted-foreground">
-          <div className="flex items-center space-x-2">
-            <Icon name="Mail" size={14} />
-            <span>soporte@ia911assist.es</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Icon name="Phone" size={14} />
-            <span>+34 900 123 456</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Icon name="Clock" size={14} />
-            <span>Lunes a Viernes: 8:00 - 18:00 CET</span>
-          </div>
-        </div>
-      </div>
-
+    <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
       {/* Security Notice */}
       <div className="bg-success/10 border border-success/20 rounded-lg p-4">
         <div className="flex items-start space-x-3">
@@ -37,8 +15,7 @@ const LoginFooter = () => {
               Conexión Segura
             </h4>
             <p className="text-xs text-success/80">
-              Sus datos están protegidos con cifrado SSL de 256 bits y 
-              cumplimos con las normativas GDPR europeas.
+              Sus datos están protegidos con cifrado SSL de 256 bits.
             </p>
           </div>
         </div>
@@ -65,7 +42,7 @@ const LoginFooter = () => {
           © {currentYear} IA-911 Assist. Todos los derechos reservados.
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          Desarrollado para fines educativos y de entrenamiento médico.
+          Sistema de asistencia médica con inteligencia artificial.
         </p>
       </div>
 
